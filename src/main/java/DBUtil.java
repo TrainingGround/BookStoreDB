@@ -6,7 +6,7 @@ import javax.xml.validation.SchemaFactory;
 import java.sql.*;
 
 public class DBUtil {
-    Connection connection = null;
+    private Connection connection = null;
     public DBUtil() {
 
 
@@ -28,10 +28,12 @@ public class DBUtil {
                 else System.out.println("Still Null");
     }
 
-    public void executeStatement(String statement){
+    public void executeStatement(String statementStr){
         if (connection!=null){
             try {
-                connection.createStatement().execute(statement);
+                Statement statement = connection.createStatement();
+                statement.execute(statementStr);
+                statement.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -43,7 +45,9 @@ public class DBUtil {
     }
     public void setSchema(String schema){
         try {
-            connection.createStatement().execute("set search_path to " + schema +";");
+            Statement statement = connection.createStatement();
+            statement.execute("set search_path to " + schema +";");
+            statement.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -51,8 +55,8 @@ public class DBUtil {
     public JSONArray readAllData(String schemaName, String tableName){
         JSONArray jsonArray = new JSONArray();
         try {
-            connection.createStatement().execute("set search_path to " + schemaName + ";");
             Statement statement = connection.createStatement();
+            statement.execute("set search_path to " + schemaName + ";");
             ResultSet resultSet = statement.executeQuery("Select*From "+tableName+";");
             ResultSetMetaData resMD = resultSet.getMetaData();
 
@@ -68,6 +72,8 @@ public class DBUtil {
                 }
                 jsonArray.add(jsonObject);
             }
+            statement.close();
+            resultSet.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

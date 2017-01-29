@@ -1,10 +1,17 @@
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.simple.JSONArray;
 import org.junit.*;
 
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 public class TestMain {
@@ -19,6 +26,7 @@ public class TestMain {
         createTable();
         populateTable();
         jsonTest();
+        copyDBtoExcel();
         dbUtil.closeConnection();
 
     }
@@ -57,6 +65,7 @@ public class TestMain {
                     prep.setObject(j,dataList.get(i).get(TableFields.getFieldString(field)));
                 }
                 prep.execute();
+                prep.close();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -75,6 +84,47 @@ public class TestMain {
             e.printStackTrace();
         }
     }
+    @Test
+    public static void copyDBtoExcel(){
+        try {
+            Statement statement = dbUtil.getConnection().createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT*FROM "+TABLE_NAME+";");
+            XSSFWorkbook workbook = new XSSFWorkbook();
+            XSSFSheet sheet = workbook.createSheet(TABLE_NAME);
+            //create row with column titles
+            XSSFRow row = sheet.createRow(1);
+            XSSFCell cell;
+            int i=0;
+            for (TableFields field: TableFields.values()){
+                i++;
+                cell = row.createCell(i);
+                cell.setCellValue(TableFields.getFieldString(field));
+            }
+            int j=2;
+            while(resultSet.next()){
+                i = 1;
+                row = sheet.createRow(j);
+                for (TableFields field:TableFields.values()){
+                    cell = row.createCell(i);
+                    if (field== TableFields.Year)
+                        cell.setCellValue(resultSet.getInt(TableFields.getFieldString(field)));
+                    else cell.setCellValue(resultSet.getString(TableFields.getFieldString(field)));
+                    i++;
+                }
+                j++;
+            }
+            FileOutputStream outStream = new FileOutputStream(new File("excel_FILE.xlsx"));
+            workbook.write(outStream);
+            outStream.close();
+            System.out.println("EXCEL file was written");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     public static String questionGenerator(){
         String string = "";
         for (int counter = 0; counter<TableFields.values().length; counter++)
@@ -84,8 +134,7 @@ public class TestMain {
     }
     public static int generateYear(){
         Random random = new Random();
-        int year = 1900+random.nextInt(116);
-        return year;
+        return 1900+random.nextInt(116);
     }
     public static String generateName(){
         Random random = new Random();

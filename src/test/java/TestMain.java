@@ -1,5 +1,3 @@
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -8,18 +6,17 @@ import org.json.simple.JSONArray;
 import org.junit.*;
 
 import java.io.*;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
 public class TestMain {
-    final static String TABLE_NAME = "BOOKS";
-    final static String SCHEMA_NAME = "BookSchema";
-    static DBUtil dbUtil = new DBUtil();
+    private final static String TABLE_NAME = "BOOKS";
+    private final static String SCHEMA_NAME = "BookSchema";
+    private static DBUtil dbUtil = new DBUtil();
     public static void main(String[] args) {
-        dbUtil.createConnection("localhost", "BookStoreDB", "postgres", "postgres");
+        dbUtil.createConnection("localhost:5432/", "BookStoreDB", "postgres", "postgres");
         dbUtil.createSchema(SCHEMA_NAME);
         dbUtil.setSchema(SCHEMA_NAME);
         //dbUtil.dropSchema("TestSchema");
@@ -50,28 +47,10 @@ public class TestMain {
                 if (field == TableFields.Year)
                     map.put(TableFields.getFieldString(field), generateYear());
                 else map.put(TableFields.getFieldString(field), generateName());
-            //Here all the fields except Year are set as a single "word" TODO more sophisticated generator?
+            //Here all the fields except Year are set as a single "word"
             dataList.add(map);
         }
-        //populate table
-        String statement = "INSERT INTO "+ TABLE_NAME+ " ( "+
-                TableFields.getAllFieldsString()+") VALUES (" + questionGenerator()+");";
-        try {
-            for (int i = 0; i<numOfRows; i++){
-                PreparedStatement prep = dbUtil.getConnection().prepareStatement(statement);
-                int j=0;
-                for (TableFields field: TableFields.values()){
-                    j++;
-                    prep.setObject(j,dataList.get(i).get(TableFields.getFieldString(field)));
-                }
-                prep.execute();
-                prep.close();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-
+        dbUtil.populateTable(dataList, TABLE_NAME);
     }
     @Test
     public static void  jsonTest(){
@@ -125,18 +104,12 @@ public class TestMain {
             e.printStackTrace();
         }
     }
-    public static String questionGenerator(){
-        String string = "";
-        for (int counter = 0; counter<TableFields.values().length; counter++)
-            if(counter!=0)string+=",?";
-                    else string+="?";
-        return string;
-    }
-    public static int generateYear(){
+
+    private static int generateYear(){
         Random random = new Random();
         return 1900+random.nextInt(116);
     }
-    public static String generateName(){
+    private static String generateName(){
         Random random = new Random();
         char[] word = new char[5+random.nextInt(5)];
         for(int counter=0;counter<word.length;counter++){
@@ -145,7 +118,7 @@ public class TestMain {
         return new String(word);
     }
 
-    enum TableFields{
+    private enum TableFields{
         Author, Name, Year, Text;
         public static String getFieldString(TableFields field){
             String fieldString ="";
@@ -168,13 +141,5 @@ public class TestMain {
             }
             return fieldString;
         }
-        public static String getAllFieldsString(){ //return string with all enum fields via coma
-            String string="";
-            for (TableFields field:TableFields.values())
-                if (string!="") string+=","+ TableFields.getFieldString(field);
-                    else string+= TableFields.getFieldString(field);
-            return string;
-        }
-
     }
 }

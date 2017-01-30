@@ -1,9 +1,10 @@
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+
 
 public class DBUtil {
     private Connection connection = null;
@@ -13,7 +14,7 @@ public class DBUtil {
     }
     public void createConnection(String hostName, String dbName, String login, String password){
         try {
-            String connectionData = "jdbc:postgresql://"+hostName+":5432/"+ dbName;//TODO hardcoded port?
+            String connectionData = "jdbc:postgresql://"+hostName+ dbName;
             Class.forName("org.postgresql.Driver");
 
             connection = DriverManager.getConnection(
@@ -30,12 +31,15 @@ public class DBUtil {
 
     public void executeStatement(String statementStr){
         if (connection!=null){
+            Statement statement = null;
             try {
-                Statement statement = connection.createStatement();
+                statement = connection.createStatement();
                 statement.execute(statementStr);
                 statement.close();
             } catch (SQLException e) {
                 e.printStackTrace();
+            } finally {
+                try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
             }
         } else System.out.println("No connection to DB");
     }
@@ -44,20 +48,24 @@ public class DBUtil {
         executeStatement("CREATE SCHEMA IF NOT EXISTS "+schema);
     }
     public void setSchema(String schema){
+        Statement statement = null;
         try {
-            Statement statement = connection.createStatement();
+            statement = connection.createStatement();
             statement.execute("set search_path to " + schema +";");
-            statement.close();
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally{
+            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
         }
     }
     public JSONArray readAllData(String schemaName, String tableName){
         JSONArray jsonArray = new JSONArray();
+        Statement statement=null;
+        ResultSet resultSet=null;
         try {
-            Statement statement = connection.createStatement();
+            statement = connection.createStatement();
             statement.execute("set search_path to " + schemaName + ";");
-            ResultSet resultSet = statement.executeQuery("Select*From "+tableName+";");
+            resultSet = statement.executeQuery("Select*From "+tableName+";");
             ResultSetMetaData resMD = resultSet.getMetaData();
 
             while (resultSet.next()){
@@ -67,17 +75,56 @@ public class DBUtil {
                     String columnName = resMD.getColumnName(i);
                     if (resMD.getColumnType(i)== Types.VARCHAR)
                         jsonObject.put(columnName,resultSet.getString(columnName));
+
                     if(resMD.getColumnType(i)==Types.INTEGER)
                         jsonObject.put(columnName,resultSet.getInt(columnName));
                 }
                 jsonArray.add(jsonObject);
+
             }
-            statement.close();
-            resultSet.close();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally{
+            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
+            try {if (resultSet!=null) resultSet.close();} catch (SQLException e) {e.printStackTrace();}
         }
         return jsonArray;
+    }
+    public void populateTable(ArrayList<HashMap<String, Object>> dataList, String tableName){
+        //populate table
+        //read column names from 1st row
+        HashMap<String,Object> firstRow = dataList.get(0);
+        String columnsViaComa = "";
+        String questionSignsViaComa="";
+        Iterator iterator = firstRow.keySet().iterator();
+        while(iterator.hasNext()){
+            columnsViaComa+=iterator.next();
+            questionSignsViaComa+="?";
+            if (iterator.hasNext()){
+                columnsViaComa+=",";
+                questionSignsViaComa+=",";
+            }
+        }
+        String statement = "INSERT INTO "+ tableName+ " ( "+
+                columnsViaComa+") VALUES (" + questionSignsViaComa+");";
+        PreparedStatement prep=null;
+        try {
+            prep = connection.prepareStatement(statement);
+            for (int i = 0; i<dataList.size(); i++){
+
+                int j=0;
+                for (String key: dataList.get(i).keySet()){
+                    j++;
+                    prep.setObject(j,dataList.get(i).get(key));
+                }
+                prep.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally{
+            try {if (prep!=null) prep.close();} catch (SQLException e) {e.printStackTrace();
+            }
+        }
     }
     public Connection getConnection(){
         return connection;

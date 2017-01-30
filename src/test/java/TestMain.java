@@ -49,7 +49,7 @@ public class TestMain {
             for (TableFields field:TableFields.values())
                 if (field == TableFields.Year)
                     map.put(TableFields.getFieldString(field), generateYear());
-                else map.put(TableFields.getFieldString(field), generateName());;
+                else map.put(TableFields.getFieldString(field), generateName());
             //Here all the fields except Year are set as a single "word" TODO more sophisticated generator?
             dataList.add(map);
         }

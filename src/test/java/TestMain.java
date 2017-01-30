@@ -66,43 +66,14 @@ public class TestMain {
     @Test
     public static void copyDBtoExcel(){
         try {
-            Statement statement = dbUtil.getConnection().createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT*FROM "+TABLE_NAME+";");
-            XSSFWorkbook workbook = new XSSFWorkbook();
-            XSSFSheet sheet = workbook.createSheet(TABLE_NAME);
-            //create row with column titles
-            XSSFRow row = sheet.createRow(1);
-            XSSFCell cell;
-            int i=0;
-            for (TableFields field: TableFields.values()){
-                i++;
-                cell = row.createCell(i);
-                cell.setCellValue(TableFields.getFieldString(field));
-            }
-            int j=2;
-            while(resultSet.next()){
-                i = 1;
-                row = sheet.createRow(j);
-                for (TableFields field:TableFields.values()){
-                    cell = row.createCell(i);
-                    if (field== TableFields.Year)
-                        cell.setCellValue(resultSet.getInt(TableFields.getFieldString(field)));
-                    else cell.setCellValue(resultSet.getString(TableFields.getFieldString(field)));
-                    i++;
-                }
-                j++;
-            }
             FileOutputStream outStream = new FileOutputStream(new File("excel_FILE.xlsx"));
-            workbook.write(outStream);
+            dbUtil.writeTableToExcel(TABLE_NAME).write(outStream);
             outStream.close();
             System.out.println("EXCEL file was written");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
+
     }
 
     private static int generateYear(){

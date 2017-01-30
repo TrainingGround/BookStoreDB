@@ -1,3 +1,8 @@
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.xmlbeans.impl.inst2xsd.util.Type;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import java.sql.*;
@@ -125,6 +130,42 @@ public class DBUtil {
             try {if (prep!=null) prep.close();} catch (SQLException e) {e.printStackTrace();
             }
         }
+    }
+    public XSSFWorkbook writeTableToExcel(String tableName){
+        Statement statement=null;
+        ResultSet resultSet=null;
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        try {
+            statement= connection.createStatement();
+            resultSet= statement.executeQuery("SELECT*FROM "+tableName+";");
+            ResultSetMetaData rsMD = resultSet.getMetaData();
+            XSSFSheet sheet = workbook.createSheet(tableName);
+            //create row with column titles
+            XSSFRow row = sheet.createRow(1);
+            XSSFCell cell;
+            for (int counter=1; counter<rsMD.getColumnCount()+1;counter++){
+                cell = row.createCell(counter);
+                cell.setCellValue(rsMD.getColumnName(counter));
+            }
+            int j=2;//first row occupied with column titles
+            while(resultSet.next()){
+                row = sheet.createRow(j);
+                for (int i=1; i<=rsMD.getColumnCount();i++){
+                    cell = row.createCell(i);
+                    if (rsMD.getColumnType(i)==Types.INTEGER)
+                        cell.setCellValue(resultSet.getInt(rsMD.getColumnName(i)));
+                    if (rsMD.getColumnType(i)==Types.VARCHAR)
+                        cell.setCellValue(resultSet.getString(rsMD.getColumnName(i)));
+                }
+                j++;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally{
+            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
+            try {if (resultSet!=null) resultSet.close();} catch (SQLException e) {e.printStackTrace();}
+        }
+        return workbook;
     }
     public Connection getConnection(){
         return connection;

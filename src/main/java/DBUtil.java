@@ -36,15 +36,11 @@ public class DBUtil {
 
     public void executeStatement(String statementStr){
         if (connection!=null){
-            Statement statement = null;
-            try {
-                statement = connection.createStatement();
+
+            try (Statement statement = connection.createStatement()) {
                 statement.execute(statementStr);
-                statement.close();
             } catch (SQLException e) {
                 e.printStackTrace();
-            } finally {
-                try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
             }
         } else System.out.println("No connection to DB");
     }
@@ -53,26 +49,19 @@ public class DBUtil {
         executeStatement("CREATE SCHEMA IF NOT EXISTS "+schema);
     }
     public void setSchema(String schema){
-        Statement statement = null;
-        try {
-            statement = connection.createStatement();
+
+        try (Statement statement = connection.createStatement()){
             statement.execute("set search_path to " + schema +";");
         } catch (SQLException e) {
             e.printStackTrace();
-        }finally{
-            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
         }
     }
     public JSONArray readAllData(String schemaName, String tableName){
         JSONArray jsonArray = new JSONArray();
-        Statement statement=null;
-        ResultSet resultSet=null;
-        try {
-            statement = connection.createStatement();
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("Select*From "+tableName+";")){
             statement.execute("set search_path to " + schemaName + ";");
-            resultSet = statement.executeQuery("Select*From "+tableName+";");
             ResultSetMetaData resMD = resultSet.getMetaData();
-
             while (resultSet.next()){
                 int numColumns = resMD.getColumnCount();
                 JSONObject jsonObject = new JSONObject();
@@ -89,9 +78,6 @@ public class DBUtil {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally{
-            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
-            try {if (resultSet!=null) resultSet.close();} catch (SQLException e) {e.printStackTrace();}
         }
         return jsonArray;
     }
@@ -112,9 +98,8 @@ public class DBUtil {
         }
         String statement = "INSERT INTO "+ tableName+ " ( "+
                 columnsViaComa+") VALUES (" + questionSignsViaComa+");";
-        PreparedStatement prep=null;
-        try {
-            prep = connection.prepareStatement(statement);
+
+        try (PreparedStatement prep = connection.prepareStatement(statement)){
             for (int i = 0; i<dataList.size(); i++){
 
                 int j=0;
@@ -126,18 +111,12 @@ public class DBUtil {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally{
-            try {if (prep!=null) prep.close();} catch (SQLException e) {e.printStackTrace();
-            }
         }
     }
     public XSSFWorkbook writeTableToExcel(String tableName){
-        Statement statement=null;
-        ResultSet resultSet=null;
         XSSFWorkbook workbook = new XSSFWorkbook();
-        try {
-            statement= connection.createStatement();
-            resultSet= statement.executeQuery("SELECT*FROM "+tableName+";");
+        try (Statement statement= connection.createStatement();
+             ResultSet resultSet= statement.executeQuery("SELECT*FROM "+tableName+";")) {
             ResultSetMetaData rsMD = resultSet.getMetaData();
             XSSFSheet sheet = workbook.createSheet(tableName);
             //create row with column titles
@@ -161,9 +140,6 @@ public class DBUtil {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally{
-            try {if (statement!=null) statement.close();} catch (SQLException e) {e.printStackTrace();}
-            try {if (resultSet!=null) resultSet.close();} catch (SQLException e) {e.printStackTrace();}
         }
         return workbook;
     }

@@ -59,7 +59,7 @@ public class DBUtil {
     public JSONArray readAllData(String schemaName, String tableName){
         JSONArray jsonArray = new JSONArray();
         try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("Select*From "+tableName+";")){
+             ResultSet resultSet = connection.createStatement().executeQuery("Select*From "+tableName+";")){
             statement.execute("set search_path to " + schemaName + ";");
             ResultSetMetaData resMD = resultSet.getMetaData();
             while (resultSet.next()){

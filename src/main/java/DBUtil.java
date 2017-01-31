@@ -85,19 +85,19 @@ public class DBUtil {
         //populate table
         //read column names from 1st row
         HashMap<String,Object> firstRow = dataList.get(0);
-        String columnsViaComa = "";
-        String questionSignsViaComa="";
+        StringBuilder columnsViaComa = new StringBuilder();
+        StringBuilder questionSignsViaComa=new StringBuilder();
         Iterator iterator = firstRow.keySet().iterator();
         while(iterator.hasNext()){
-            columnsViaComa+=iterator.next();
-            questionSignsViaComa+="?";
+            columnsViaComa.append(iterator.next());
+            questionSignsViaComa.append('?');
             if (iterator.hasNext()){
-                columnsViaComa+=",";
-                questionSignsViaComa+=",";
+                columnsViaComa.append(',');
+                questionSignsViaComa.append(',');
             }
         }
         String statement = "INSERT INTO "+ tableName+ " ( "+
-                columnsViaComa+") VALUES (" + questionSignsViaComa+");";
+                columnsViaComa.toString()+") VALUES (" + questionSignsViaComa.toString()+");";
 
         try (PreparedStatement prep = connection.prepareStatement(statement)){
             for (int i = 0; i<dataList.size(); i++){
